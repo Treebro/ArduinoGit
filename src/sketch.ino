@@ -3,6 +3,8 @@ Not currently configured to handle input strings larger than max signed integer.
 Integer max in arduino development is 16 bit (min max of 32768)
 Should add funcionality of long. but we have floats until then so umm. yeah sure. yayyyyyy. floats are stored in 32bit and are slightly inaccurate, but have much more power. 6-7 digits of precision. This takes a performance hit when calculating in loop.
 Should add a define delimiter.
+Set initializer so that on start the values stored in input[][] are -1 instead of 0.
+make it handle negative integer and float input. shouldn't be too hard. just gotta put the brackets in the right place on the if statements so it accepts hyphens.
 */
 #define UD 2
 #define LR 4
