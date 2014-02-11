@@ -19,15 +19,15 @@ input -1 means null.  No chars should evaluate to negative numbers.
 Known bugs:
 -minor- when inputting float values which turn into char strings after (6?) digits of precision, loop disregards new chars and keeps the float value.
 -major- floats always go to 2 decimal places :(  When trying 0.005>x will only result in 0.00. Ever.
-
+-minor- when typing input and you overflow maxletters/maxwords it doesn't place the cursor into the correct position.
 */
 #define UD 2
 #define LR 4
 #define RR 6
 #define joyPinX 1
 #define joyPinY 2
-#define letterCountMax 32
-#define wordCountMax 4
+#define letterCountMax 16
+#define wordCountMax 8
 int x = 1; //counts loops where Monitor wass called I guess.
 int stringComplete = 0;  // whether the string is complete
 int wordCount = 0; //stores which word you are currently inputting. Words are delimited by spaces.
@@ -100,15 +100,15 @@ void resetInterpereterVars(void) {
   /*interperetCount = 0;*/
 }
 
-int interperet(wordCounti) {
-int answer = 0;
+int interperet(int wordCounti) {
+int answer = 1;
 if (wordType[wordCounti] == 'c') {
   //compare to wordlist. implement later.
   answer = 0;
-} else 
+} else
 if (wordType[wordCounti] == 'i') {
   answer = intOut[wordCounti];
-}
+} else
 interperetCount++;
 return answer;
 }
@@ -184,18 +184,81 @@ void loop()
       }
       Serial.println("");
     }
-
+    /*
+    switch(interperet(interperetCount)) {
+      case 0:
+        break;
+      case 1:
+        break;
+      case 2:
+        break;
+      case 3:
+        break;
+      case 4:
+        break;
+      default:
+        break;
+    }
+    */
     //execute
     interperetCount = 0; //reset interperetCount so we can use it again.
-    switch(interperet())
+    switch(interperet(interperetCount))
     {
       case 0://help
+        Serial.println("help");
+        break;
       case 1://set
+        switch(interperet(interperetCount)) {
+          case 0:
+            digitalWrite(interperet(interperetCount), HIGH);
+            /*digitalWrite(interperet(interperetCount + 1), interperet(interperetCount - 1)); //Weird. digitalwrite is taking in arguments backwards compared to the command input.  so -1 +1 swaps em :3*/
+            Serial.print("\r\nSet pin ");
+            interperetCount = interperetCount - 2;//since interperet() increases  the interperetCount each time it is called. we have an issue.
+            Serial.print(interperet(interperetCount));
+            Serial.print(" to ");
+            Serial.print(interperet(interperetCount));
+            break;
+          case 1:
+            break;
+          case 2:
+            break;
+          case 3:
+            break;
+          case 4:
+            break;
+          default:
+            Serial.print("\r\nSet failed.");
+            break;
+        }
+        Serial.println("set");
+        break;
       case 2://read
+        Serial.println("read");
+        break;
       case 3://system
+        Serial.println("sys");
+        break;
       case 4://monitor
+        switch(interperet(interperetCount)) {
+          case 1:
+            Serial.println("mon");
+            if (monitorOn == true) {
+            monitorOn = false;
+            } else {
+            monitorOn = true;
+            }
+            break;
+          case 2:
+            Serial.println("Totally not a Syntax error!");
+            break;
+          default:
+            Serial.println("Syntax error!");
+            break;
+        }
+        break;
       default:
-      Serial.println("Syntax error!");
+        Serial.println("Syntax error!");
+        break;
     }//floats are a pain in the arse. not accepted for right here.
 
 
