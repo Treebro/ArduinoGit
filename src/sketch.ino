@@ -6,6 +6,7 @@ Should add a define delimiter.
 Set initializer so that on start the values stored in input[][] are -1 instead of 0.
 make it handle negative integer and float input. shouldn't be too hard. just gotta put the brackets in the right place on the if statements so it accepts hyphens.
 Need to add long support because integers feel small :(
+-Time to start work on the word interpereter.  Though this is getting pretty sizeable (9KB) and the uno only has 32KB, maybe it be time to slow er down.
 */
 /*
 Code I want to remember but don't have a use for just yet.
@@ -41,7 +42,9 @@ int joyY; //input from Y axis of joystick
 int baud = 9600;
 int input[wordCountMax][letterCountMax]={{}}; //The array of inputs.
 /*int input[wordCountMax][letterCountMax]={{0}, {1},{1, 2, 3, 4, 5, 6}};*/
-boolean monitorOn = true; //When enabled, shows constant monitor promts of variables stored under monitor() and monitor2() *not implemented yet*
+bool monitorOn = true; //When enabled, shows constant monitor promts of variables stored under monitor() and monitor2() *not implemented yet*
+boolean monitorForce = false;//When enabled, monitor continues running as text is entered. This really messes with input positioning.
+boolean debugMode = false;
 /*char *array[5];*/
 /*array[0] = "tree";*/
 /*array[1] = "fire";*/
@@ -101,14 +104,14 @@ void resetInterpereterVars(void) {
 }
 
 int interperet(int wordCounti) {
-int answer = 1;
+int answer = 0;
 if (wordType[wordCounti] == 'c') {
   //compare to wordlist. implement later.
   answer = 0;
 } else
 if (wordType[wordCounti] == 'i') {
   answer = intOut[wordCounti];
-} else
+}
 interperetCount++;
 return answer;
 }
@@ -126,7 +129,13 @@ void loop()
         break;
       }
       interperetCount = 0;
-      for (int letterCounti = 0; letterCounti < 8; letterCounti++) {
+      for (int letterCounti = 0; letterCounti < letterCountMax; letterCounti++) {
+        if (debugMode == true) {
+          Serial.print(input[wordCounti][letterCounti]-48);
+          /*Serial.println(intOut[wordCounti]);*/
+          /*Serial.println(interperetCount);*/
+          Serial.print(" ");
+        }
         if (input[wordCounti][letterCounti] == -1) {
           break;
         }
@@ -154,39 +163,39 @@ void loop()
           //its obviously a charachter.
           //ditch ths for loop and move on to next char. later  we will read directly from input[x][y] because it has the literal string saved there already.
           wordType[wordCounti] = 'c'; //lock this word as char. In every instance if one part is a letter it has to be a string in total. even if it is a typo or whatever and it was supposed to be int. too bad. syntax error.
-          break;
+          if (debugMode == false) {
+            break;
+          }
         }
-        /*Serial.print(input[wordCounti][letterCounti]-48);*/
-        /*Serial.println(intOut[wordCounti]);*/
-        /*Serial.println(interperetCount);*/
-        /*Serial.print(" ");*/
       }
 
 
       //paste the data for debugging.
-      Serial.print("\r\n LineOut: ");
-      Serial.print(wordCounti);
-      Serial.print(" WordType: ");
-      Serial.print(wordType[wordCounti]);
-      Serial.print(" Value: ");
-      if (wordType[wordCounti] == 'i') {
-        Serial.print(intOut[wordCounti]);
-      } else
-      if (wordType[wordCounti] == 'f') {
-        Serial.print(floatOut[wordCounti]);
-      } else
-      if (wordType[wordCounti] == 'c') {
-        for (int letterCounti = 0; letterCounti < letterCountMax; letterCounti++) {
-          if (input[wordCounti][letterCounti] != -1){
-            Serial.print((char)input[wordCounti][letterCounti]);
+      if (debugMode == true) {
+        Serial.print("\r\nLineOut: ");
+        Serial.print(wordCounti);
+        Serial.print(" WordType: ");
+        Serial.print(wordType[wordCounti]);
+        Serial.print(" Value: ");
+        if (wordType[wordCounti] == 'i') {
+          Serial.print(intOut[wordCounti]);
+        } else
+        if (wordType[wordCounti] == 'f') {
+          Serial.print(floatOut[wordCounti]);
+        } else
+        if (wordType[wordCounti] == 'c') {
+          for (int letterCounti = 0; letterCounti < letterCountMax; letterCounti++) {
+            if (input[wordCounti][letterCounti] != -1){
+              Serial.print((char)input[wordCounti][letterCounti]);
+            }
           }
         }
-      }
       Serial.println("");
+      }
     }
-    /*
+    /* Template.
     switch(interperet(interperetCount)) {
-      case 0:
+      case 0://help
         break;
       case 1:
         break;
@@ -197,10 +206,11 @@ void loop()
       case 4:
         break;
       default:
+        Serial.println("Syntax error!");
         break;
     }
     */
-    //execute
+    //execute input
     interperetCount = 0; //reset interperetCount so we can use it again.
     switch(interperet(interperetCount))
     {
@@ -209,47 +219,131 @@ void loop()
         break;
       case 1://set
         switch(interperet(interperetCount)) {
-          case 0:
-            digitalWrite(interperet(interperetCount), HIGH);
-            /*digitalWrite(interperet(interperetCount + 1), interperet(interperetCount - 1)); //Weird. digitalwrite is taking in arguments backwards compared to the command input.  so -1 +1 swaps em :3*/
-            Serial.print("\r\nSet pin ");
+          case 0://help
+          case 1://pin
+            digitalWrite(interperet(interperetCount - 1), interperet(interperetCount + 1)); //Weird. digitalwrite is taking in arguments backwards compared to the command input.  so -1 +1 swaps em :3  Also note that they are resolved backwards...
+            Serial.print("Set pin ");
             interperetCount = interperetCount - 2;//since interperet() increases  the interperetCount each time it is called. we have an issue.
-            Serial.print(interperet(interperetCount));
+            Serial.print(interperet(interperetCount + 1));
             Serial.print(" to ");
-            Serial.print(interperet(interperetCount));
+            Serial.println(interperet(interperetCount - 1));
             break;
-          case 1:
+          case 2://pinMode
+            interperetCount++;
+            switch(interperet(interperetCount)) {
+              case 0://help
+                break;
+              case 1:
+                pinMode(interperet(interperetCount - 2), INPUT);
+                Serial.print("Set pin ");
+                interperetCount = interperetCount - 2;//since interperet() increases  the interperetCount each time it is called. we have an issue.
+                Serial.print(interperet(interperetCount - 1));
+                Serial.print(" to INPUT\r\n");
+                break;
+              case 2:
+                pinMode(interperet(interperetCount - 2), OUTPUT);
+                Serial.print("Set pin ");
+                interperetCount = interperetCount - 2;//since interperet() increases  the interperetCount each time it is called. we have an issue.
+                Serial.print(interperet(interperetCount - 1));
+                Serial.print(" to OUTPUT\r\n");
+                break;
+              case 3://INPUT_PULLUP
+                break;
+              default:
+                Serial.println("Syntax error!");
+                break;
+            }
             break;
-          case 2:
+          case 3://serial
             break;
-          case 3:
+          case 4://variable
             break;
-          case 4:
+          case 5://mode
+            debugMode = true;
+            break;
+          case 6://mode
+            debugMode = false;
             break;
           default:
-            Serial.print("\r\nSet failed.");
+            Serial.println("Syntax error!");
             break;
         }
-        Serial.println("set");
         break;
       case 2://read
-        Serial.println("read");
+        switch(interperet(interperetCount)) {
+          case 0://help
+            break;
+          case 1://read digital
+            Serial.print("Pin ");
+            Serial.print(interperet(interperetCount));
+            Serial.print(" is ");
+            Serial.println(digitalRead(interperet(interperetCount-1)));
+            break;
+          case 2://read analog
+            break;
+          case 3://variable
+            break;
+          default:
+            Serial.println("Syntax error!");
+            break;
+        }
         break;
       case 3://system
-        Serial.println("sys");
+        switch(interperet(interperetCount)) {
+          case 0://help
+            break;
+          case 1://mode
+            break;
+          case 2://pauseMainfunc
+            break;
+          case 3://reset
+            switch(interperet(interperetCount)) {
+              case 0://help
+                break;
+              case 1://go-zero
+                resetFunc();
+                break;
+              case 2://halt
+                break;
+              case 3://hard
+                break;
+              case 4://soft
+                break;
+              case 5://disable-halt
+                break;
+              default:
+                Serial.println("Syntax error!");
+                break;
+            }
+            break;
+          default:
+            Serial.println("Syntax error!");
+            break;
+        }
         break;
       case 4://monitor
         switch(interperet(interperetCount)) {
-          case 1:
-            Serial.println("mon");
-            if (monitorOn == true) {
-            monitorOn = false;
-            } else {
-            monitorOn = true;
-            }
+          case 0://help
             break;
-          case 2:
-            Serial.println("Totally not a Syntax error!");
+          case 1://relevant
+            monitorOn = true;
+            break;
+          case 2://add varialble
+            break;
+          case 3://add pin
+            break;
+          case 4://remove variable
+            break;
+          case 5://remove all
+            break;
+          case 6://hide
+            monitorOn = false;
+            break;
+          case 7://force
+            monitorForce = true;
+            break;
+          case 8://forceoff
+            monitorForce = false;
             break;
           default:
             Serial.println("Syntax error!");
@@ -267,7 +361,7 @@ void loop()
 
     //set terminal in ready state for next command.
     Serial.print("\r-done\n"); //Provide end message to indicate end out output.
-    if (monitorOn == true) {
+    if (monitorOn == true || monitorForce == true) {
       Serial.print("\n\n"); //Add the two lines that monitor occupies. If monitor is not active, do not add space.
     }
     Serial.print("\r\n->");
@@ -277,7 +371,7 @@ void loop()
   //Note, make into two functions that take in a variable amount of variables.
   //Read monitor mode
   /*if (true) {*/
-  if (stringComplete == 0 && monitorOn == true) { //(
+  if (monitorForce == true ||(stringComplete == 0 && monitorOn == true)) { //(
   Serial.print("\r\033[3A\033[K"); //returns to start of line, moves up 2 rows, clears line
   //First monitoring line goes here:
   Serial.print("X:");
@@ -302,6 +396,7 @@ void loop()
   delay(100);
   joyY = analogRead(joyPinY);
   x++;
+  //lonely isnt it?
 }
 
 
@@ -335,7 +430,7 @@ void serialEvent() {
         Serial.print((char)inChar);
       }
     } else
-    /*
+    /* supposed to be tab complete. It actually worked pretty good for the first part.
     if((int)inChar == 63) {
       Serial.println();
       for(int i = 0; i < 9; i++) {
