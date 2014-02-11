@@ -5,21 +5,36 @@ Should add funcionality of long. but we have floats until then so umm. yeah sure
 Should add a define delimiter.
 Set initializer so that on start the values stored in input[][] are -1 instead of 0.
 make it handle negative integer and float input. shouldn't be too hard. just gotta put the brackets in the right place on the if statements so it accepts hyphens.
+Need to add long support because integers feel small :(
+*/
+/*
+Code I want to remember but don't have a use for just yet.
+Serial.print(176, BYTE);
+*/
+/*
+Sentient values:
+input -1 means null.  No chars should evaluate to negative numbers.
+*/
+/*
+Known bugs:
+-minor- when inputting float values which turn into char strings after (6?) digits of precision, loop disregards new chars and keeps the float value.
+-major- floats always go to 2 decimal places :(  When trying 0.005>x will only result in 0.00. Ever.
+
 */
 #define UD 2
 #define LR 4
 #define RR 6
 #define joyPinX 1
 #define joyPinY 2
-#define letterCountMax 16
-#define wordCountMax 8
+#define letterCountMax 32
+#define wordCountMax 4
 int x = 1; //counts loops where Monitor wass called I guess.
 int stringComplete = 0;  // whether the string is complete
 int wordCount = 0; //stores which word you are currently inputting. Words are delimited by spaces.
 int interperetCount = 0; //stores how many legitimate chars were found when starting at end of string.
 int letterCount[wordCountMax] = {}; //Stores which letter[of which word] you are on.
 char wordType[wordCountMax] = {}; //Saves the type of variable a word is being converted to. Used as an index to determine which array to read from.  Ints are read from intOut[], floats from floatOut[], and char strings will be read from the string. -1 is delim.
-int intout[wordCountMax] = {};    //noted above
+int intOut[wordCountMax] = {};    //noted above
 float floatOut[wordCountMax] = {};//noted above
 int joyX; //input from X axis of joystick
 int joyY; //input from Y axis of joystick
@@ -64,10 +79,38 @@ void setup()
     digitalWrite(UD, HIGH);
     digitalWrite(LR, HIGH);
     digitalWrite(RR, HIGH);
+    resetInterpereterVars();
     delay(800);
     digitalWrite(UD, LOW);
     digitalWrite(LR, LOW);
     digitalWrite(RR, LOW);
+}
+void resetInterpereterVars(void) {
+  for (int wordCounti = 0; wordCounti < wordCountMax; wordCounti++) { //This cleans the entire array of values
+    for (int letterCounti = 0; letterCounti < letterCountMax; letterCounti++) {
+      input[wordCounti][letterCounti] = -1;
+    }
+    wordType[wordCounti] = 'i';
+    letterCount[wordCounti] = 0;
+    intOut[wordCounti] = 0;
+    floatOut[wordCounti] = 0;
+  }
+  stringComplete = 0; //Reset to default/monitor available mode
+  wordCount = 0; //this sets it back to the first word
+  /*interperetCount = 0;*/
+}
+
+int interperet(wordCounti) {
+int answer = 0;
+if (wordType[wordCounti] == 'c') {
+  //compare to wordlist. implement later.
+  answer = 0;
+} else 
+if (wordType[wordCounti] == 'i') {
+  answer = intOut[wordCounti];
+}
+interperetCount++;
+return answer;
 }
 
 void(* resetFunc)(void) = 0; //Declares reset function at address 0.
@@ -78,55 +121,88 @@ void loop()
   if (stringComplete == 2) {
     Serial.print("\r\n-ok\r\n");
     //This big brick right here takes all the input and crunches it down to a usable output like word 1 = int of 1, word2 is float of 3.14, word 3 is int of 2, word4 is string of "lcd_text"
-    //We read it backwards to detect the length that the integer value is going to be.  We input it in decimal with the most important at the start. so we gotta read it backwards with this fucky power of 10 incrememtal crap.
     for (int wordCounti = 0; wordCounti < wordCountMax; wordCounti++) {
       if (input[wordCounti][0] == -1) {
         break;
       }
-      for (int letterCounti = letterCountMax - 1; letterCounti >= 0; letterCounti--) {
-        if (!(input[wordCounti][letterCounti] == -1)) {
-          if (input[wordCounti][letterCounti] >= 48 && input[wordCounti][letterCounti] <= 57 && wordType[wordCounti] == 'i') { //type is set to 'i' upon completion. it is the default starting point. it assumes it is reading an integer until it is proven to be otherwise.
-          //do stuff for integer value.
-          // int = int + inputbyte * loopcount ^ 10
-          //needs a seperate loop counter because of the possible float conversion. maybe not, maybe I can make some magic and have it store where the . is in the next one. but meh.
-          //loopcount ++
-          } else 
-          if ((input[wordCounti][letterCounti] == 46 && wordType[wordCounti] = 'i') || wordType[wordCounti] == 'f') { //if it is a period, and currently set to integer, make it into a float and continue reading.  It only accepts a period when the type is integer so that it doesn't accept two instances of period.
+      interperetCount = 0;
+      for (int letterCounti = 0; letterCounti < 8; letterCounti++) {
+        if (input[wordCounti][letterCounti] == -1) {
+          break;
+        }
+        if (input[wordCounti][letterCounti] >= 48 && input[wordCounti][letterCounti] <= 57 && wordType[wordCounti] == 'i') { //type is set to 'i' upon completion. it is the default starting point. it assumes it is reading an integer until it is proven to be otherwise.
+        //do stuff for integer value.
+        // int = int + inputbyte * loopcount ^ 10
+          intOut[wordCounti] = intOut[wordCounti] * 10 + input[wordCounti][letterCounti] - 48;
+          /*intOut[wordCounti] = intOut[wordCounti] + ((input[wordCounti][letterCounti] - 48) * (10 ^ interperetCount));*/ //DOES NOT WORK, READS BACKWARDS
+        //needs a seperate loop counter because of the possible float conversion. maybe not, maybe I can make some magic and have it store where the . is in the next one. but meh.
+        //loopcount ++
+        } else
+
+        if ((input[wordCounti][letterCounti] == 46 && wordType[wordCounti] == 'i') || (wordType[wordCounti] == 'f' && input[wordCounti][letterCounti] >= 48 && input[wordCounti][letterCounti] <= 57 )) { //if it is a period, and currently set to integer, make it into a float and continue reading.  It only accepts a period when the type is integer so that it doesn't accept two instances of period.
           // do float stuff
-            //if its still type i,
-            //take current integer, and blast it right into the thing past the decimal.  something like float = currentoutput/(interperetercount^10) which should leave you with .1234 or whatever.
-            //reset interperetercount. need to add correct variable on decimal notation addition.
-            //erase the integerbyte
-            //}
-            //float[wordc] = float[wordc] + inputbyte * loopcount ^ 10
-            //loopcount++;
+          if (wordType[wordCounti] == 'i') {
+            floatOut[wordCounti] = (float)intOut[wordCounti]+2.0; //!!BUG!! Why de hell does it neet +2.0?  Answers were always coming -2 short. I didn't get it but this fixed it.
+            intOut[wordCounti] = 0;
             wordType[wordCounti] = 'f'; //lock this as a float unless a char is supplied.
-          } else
-          {
-            //its obviously a charachter.
-            //ditch ths for loop and move on to next char. later  we will read directly from input[x][y] because it has the literal string saved there already.
-            wordType[wordCounti] = 'c'; //lock this word as char. In every instance if one part is a letter it has to be a string in total. even if it is a typo or whatever and it was supposed to be int. too bad. syntax error.
+          }
+          floatOut[wordCounti] = floatOut[wordCounti] + ((float)input[wordCounti][letterCounti]-48.0) * (float)pow(10, (-1.0 * (float)interperetCount));
+          interperetCount++;
+        } else
+
+        {
+          //its obviously a charachter.
+          //ditch ths for loop and move on to next char. later  we will read directly from input[x][y] because it has the literal string saved there already.
+          wordType[wordCounti] = 'c'; //lock this word as char. In every instance if one part is a letter it has to be a string in total. even if it is a typo or whatever and it was supposed to be int. too bad. syntax error.
+          break;
+        }
+        /*Serial.print(input[wordCounti][letterCounti]-48);*/
+        /*Serial.println(intOut[wordCounti]);*/
+        /*Serial.println(interperetCount);*/
+        /*Serial.print(" ");*/
+      }
+
+
+      //paste the data for debugging.
+      Serial.print("\r\n LineOut: ");
+      Serial.print(wordCounti);
+      Serial.print(" WordType: ");
+      Serial.print(wordType[wordCounti]);
+      Serial.print(" Value: ");
+      if (wordType[wordCounti] == 'i') {
+        Serial.print(intOut[wordCounti]);
+      } else
+      if (wordType[wordCounti] == 'f') {
+        Serial.print(floatOut[wordCounti]);
+      } else
+      if (wordType[wordCounti] == 'c') {
+        for (int letterCounti = 0; letterCounti < letterCountMax; letterCounti++) {
+          if (input[wordCounti][letterCounti] != -1){
+            Serial.print((char)input[wordCounti][letterCounti]);
           }
         }
-        Serial.print(input[wordCounti][letterCounti]-48);
-        Serial.print(" ");
       }
       Serial.println("");
     }
 
+    //execute
+    interperetCount = 0; //reset interperetCount so we can use it again.
+    switch(interperet())
+    {
+      case 0://help
+      case 1://set
+      case 2://read
+      case 3://system
+      case 4://monitor
+      default:
+      Serial.println("Syntax error!");
+    }//floats are a pain in the arse. not accepted for right here.
 
 
     //reset all variables and prep for next input.
-    for (int wordCounti = 0; wordCounti < wordCountMax; wordCounti++) { //This cleans the entire array of values
-      for (int letterCounti = 0; letterCounti < letterCountMax; letterCounti++) {
-        input[wordCounti][letterCounti] = -1;
-      }
-      wordType[wordCounti] = 'i';
-    }
-    stringComplete = 0; //Reset to default/monitor available mode
-    wordCount = 0; //this sets it back to the first word
-    for(int wordCounti = 0; wordCounti  < wordCountMax; wordCounti ++)
-    letterCount[wordCounti] = 0;//sets all of the letter pointers in all words back to 0
+    resetInterpereterVars();
+
+    //set terminal in ready state for next command.
     Serial.print("\r-done\n"); //Provide end message to indicate end out output.
     if (monitorOn == true) {
       Serial.print("\n\n"); //Add the two lines that monitor occupies. If monitor is not active, do not add space.
@@ -137,7 +213,8 @@ void loop()
 
   //Note, make into two functions that take in a variable amount of variables.
   //Read monitor mode
-  if (true) { //stringComplete == 0 && monitorOn == true) { //(
+  /*if (true) {*/
+  if (stringComplete == 0 && monitorOn == true) { //(
   Serial.print("\r\033[3A\033[K"); //returns to start of line, moves up 2 rows, clears line
   //First monitoring line goes here:
   Serial.print("X:");
