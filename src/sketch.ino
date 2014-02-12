@@ -42,7 +42,7 @@ int joyY; //input from Y axis of joystick
 int baud = 9600;
 int input[wordCountMax][letterCountMax]={{}}; //The array of inputs.
 /*int input[wordCountMax][letterCountMax]={{0}, {1},{1, 2, 3, 4, 5, 6}};*/
-bool monitorOn = true; //When enabled, shows constant monitor promts of variables stored under monitor() and monitor2() *not implemented yet*
+bool monitorOn = false;//When enabled, shows constant monitor promts of variables stored under monitor() and monitor2() *not implemented yet*
 boolean monitorForce = false;//When enabled, monitor continues running as text is entered. This really messes with input positioning.
 boolean debugMode = false;
 /*char *array[5];*/
@@ -220,6 +220,7 @@ void loop()
       case 1://set
         switch(interperet(interperetCount)) {
           case 0://help
+            break;
           case 1://pin
             digitalWrite(interperet(interperetCount - 1), interperet(interperetCount + 1)); //Weird. digitalwrite is taking in arguments backwards compared to the command input.  so -1 +1 swaps em :3  Also note that they are resolved backwards...
             Serial.print("Set pin ");
@@ -396,6 +397,19 @@ void loop()
   delay(100);
   joyY = analogRead(joyPinY);
   x++;
+  if ( x == 5){
+  digitalWrite(2,1);
+  digitalWrite(4,0);
+  }
+  if ( x == 10){
+  digitalWrite(4,1);
+  digitalWrite(6,0);
+  }
+  if ( x == 15){
+  digitalWrite(6,1);
+  digitalWrite(2,0);
+  x = 0;
+  }
   //lonely isnt it?
 }
 
