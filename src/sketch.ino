@@ -11,7 +11,15 @@ Need to add long support because integers feel small :(
 /*
 Code I want to remember but don't have a use for just yet.
 Serial.print(176, BYTE);
+Turn help into a ptr array of strings and loop through them.
+char *strs[6] = {"monitor", "set", "read", "system", "test", '\0'};
+  Serial.print(strs[0]);
+  Serial.print(strs[1]);
+  Serial.print(strs[2]);
+  Serial.print(strs[3]);
+  Serial.print(strs[4]);
 */
+
 /*
 Sentient values:
 input -1 means null.  No chars should evaluate to negative numbers.
@@ -45,6 +53,8 @@ int input[wordCountMax][letterCountMax]={{}}; //The array of inputs.
 bool monitorOn = false;//When enabled, shows constant monitor promts of variables stored under monitor() and monitor2() *not implemented yet*
 boolean monitorForce = false;//When enabled, monitor continues running as text is entered. This really messes with input positioning.
 boolean debugMode = false;
+bool pause = false;
+bool haltDisable = false;
 /*char *array[5];*/
 /*array[0] = "tree";*/
 /*array[1] = "fire";*/
@@ -61,17 +71,12 @@ void tset (void) {
 }
 void tread (void) {
   Serial.println("tread");
-}/*
-/*DigitFuncPtr werd[3] = {tmonitor, tset, tread};*/
-/*char *strs[6] = {"monitor", "set", "read", "system", "test", '\0'};*/
-       /* (werd[0])();
+}
+DigitFuncPtr werd[3] = {tmonitor, tset, tread};
+        (werd[0])();
         (werd[1])();
         (werd[2])();
-        Serial.print(strs[0]);
-        Serial.print(strs[1]);
-        Serial.print(strs[2]);
-        Serial.print(strs[3]);
-        Serial.print(strs[4]); */
+*/
 void setup()
 {
     Serial.begin(baud);
@@ -95,7 +100,7 @@ void resetInterpereterVars(void) {
     }
     wordType[wordCounti] = 'i';
     letterCount[wordCounti] = 0;
-    intOut[wordCounti] = 0;
+    intOut[wordCounti] = -1;
     floatOut[wordCounti] = 0;
   }
   stringComplete = 0; //Reset to default/monitor available mode
@@ -128,7 +133,8 @@ void loop()
       if (input[wordCounti][0] == -1) {
         break;
       }
-      interperetCount = 0;
+      interperetCount = 0; //inter
+      intOut[wordCounti] = 0; //Needed to set this to a sentient value previously so operations would not take default 0 (in cases where pin # is important, we can't just say no to 0)
       for (int letterCounti = 0; letterCounti < letterCountMax; letterCounti++) {
         if (debugMode == true) {
           Serial.print(input[wordCounti][letterCounti]-48);
@@ -152,7 +158,6 @@ void loop()
           // do float stuff
           if (wordType[wordCounti] == 'i') {
             floatOut[wordCounti] = (float)intOut[wordCounti]+2.0; //!!BUG!! Why de hell does it neet +2.0?  Answers were always coming -2 short. I didn't get it but this fixed it.
-            intOut[wordCounti] = 0;
             wordType[wordCounti] = 'f'; //lock this as a float unless a char is supplied.
           }
           floatOut[wordCounti] = floatOut[wordCounti] + ((float)input[wordCounti][letterCounti]-48.0) * (float)pow(10, (-1.0 * (float)interperetCount));
@@ -194,8 +199,10 @@ void loop()
       }
     }
     /* Template.
+    Serial.println("0: help\r\n1: \r\n2: \r\n3: \r\n4: \r\n5: \r\n6: \r\n7: \r\n8: \r\n");
     switch(interperet(interperetCount)) {
       case 0://help
+      case -1:
         break;
       case 1:
         break;
@@ -215,24 +222,35 @@ void loop()
     switch(interperet(interperetCount))
     {
       case 0://help
-        Serial.println("help");
+      case -1:
+        Serial.println("0: help\r\n1: set\r\n2: read\r\n3: system\r\n4: monitor\r\n");
         break;
       case 1://set
         switch(interperet(interperetCount)) {
           case 0://help
+          case -1:
+            Serial.println("0: help\r\n1: pin\r\n2: pinMode\r\n3: serial\r\n4: variable\r\n5: debugMode\r\n6: \r\n7: \r\n8: \r\n");
             break;
           case 1://pin
-            digitalWrite(interperet(interperetCount - 1), interperet(interperetCount + 1)); //Weird. digitalwrite is taking in arguments backwards compared to the command input.  so -1 +1 swaps em :3  Also note that they are resolved backwards...
-            Serial.print("Set pin ");
-            interperetCount = interperetCount - 2;//since interperet() increases  the interperetCount each time it is called. we have an issue.
-            Serial.print(interperet(interperetCount + 1));
-            Serial.print(" to ");
-            Serial.println(interperet(interperetCount - 1));
+            if (interperet(interperetCount) == -1 || interperet(interperetCount) == -1)
+            {
+              Serial.println("This function needs parameters! (pin#, on1/off0)");
+            } else {
+              interperetCount = interperetCount - 2;
+              digitalWrite(interperet(interperetCount - 1), interperet(interperetCount + 1)); //Weird. digitalwrite is taking in arguments backwards compared to the command input.  so -1 +1 swaps em :3  Also note that they are resolved backwards...
+              Serial.print("Set pin ");
+              interperetCount = interperetCount - 2;//since interperet() increases  the interperetCount each time it is called. we have an issue.
+              Serial.print(interperet(interperetCount));
+              Serial.print(" to ");
+              Serial.println(interperet(interperetCount));
+            }
             break;
           case 2://pinMode
             interperetCount++;
             switch(interperet(interperetCount)) {
               case 0://help
+              case -1:
+                Serial.println("This function needs parameters! (pin#, input1/output2/Input_Pullup3)");
                 break;
               case 1:
                 pinMode(interperet(interperetCount - 2), INPUT);
@@ -260,10 +278,21 @@ void loop()
           case 4://variable
             break;
           case 5://mode
-            debugMode = true;
-            break;
-          case 6://mode
-            debugMode = false;
+            switch(interperet(interperetCount)) {
+              case 0://help
+              case -1:
+                Serial.println("0: help\r\n1: false\r\n2: true\r\n");
+                break;
+              case 1://false
+                debugMode = false;
+                break;
+              case 2://true
+                debugMode = true;
+                break;
+              default:
+                Serial.println("Syntax error!");
+                break;
+            }
             break;
           default:
             Serial.println("Syntax error!");
@@ -273,14 +302,20 @@ void loop()
       case 2://read
         switch(interperet(interperetCount)) {
           case 0://help
+          case -1:
+            Serial.println("0: help\r\n1: digital\r\n2: analog\r\n3: variable\r\n");
             break;
           case 1://read digital
-            Serial.print("Pin ");
+            Serial.print("Digital pin ");
             Serial.print(interperet(interperetCount));
             Serial.print(" is ");
             Serial.println(digitalRead(interperet(interperetCount-1)));
             break;
           case 2://read analog
+            Serial.print("Analog pin ");
+            Serial.print(interperet(interperetCount));
+            Serial.print(" is ");
+            Serial.println(analogRead(interperet(interperetCount-1)));
             break;
           case 3://variable
             break;
@@ -292,25 +327,51 @@ void loop()
       case 3://system
         switch(interperet(interperetCount)) {
           case 0://help
+          case -1:
+            Serial.println("0: help\r\n1: mode\r\n2: pause\r\n3: reset\r\n");
             break;
           case 1://mode
             break;
           case 2://pauseMainfunc
+            switch(interperet(interperetCount)) {
+              case 0://help
+              case -1:
+                Serial.println("0: help\r\n1: false\r\n2: true\r\n");
+                break;
+              case 1:
+                pause = false;
+                break;
+              case 2:
+                pause = true;
+                break;
+              default:
+                Serial.println("Syntax error!");
+                break;
+            }
             break;
           case 3://reset
             switch(interperet(interperetCount)) {
               case 0://help
+              case -1:
+                Serial.println("0: help\r\n1: go-zero\r\n2: halt\r\n3: hard\r\n4: soft\r\n5: disable-halt\r\n");
                 break;
               case 1://go-zero
                 resetFunc();
                 break;
               case 2://halt
+                if (haltDisable == false) {
+                  //do halt
+                  Serial.print("Should be halting. lets figure out halt.");
+                } else {
+                  Serial.println("Halt disabled.");
+                }
                 break;
               case 3://hard
                 break;
               case 4://soft
                 break;
               case 5://disable-halt
+                haltDisable = true;
                 break;
               default:
                 Serial.println("Syntax error!");
@@ -325,6 +386,8 @@ void loop()
       case 4://monitor
         switch(interperet(interperetCount)) {
           case 0://help
+          case -1:
+            Serial.println("0: help\r\n1: relevant\r\n2: addVar\r\n3: addPin\r\n4: rmvVar\r\n5: rmvAll\r\n6: hide\r\n7: force\r\n");
             break;
           case 1://relevant
             monitorOn = true;
@@ -341,10 +404,21 @@ void loop()
             monitorOn = false;
             break;
           case 7://force
-            monitorForce = true;
-            break;
-          case 8://forceoff
-            monitorForce = false;
+            switch(interperet(interperetCount)) {
+              case 0://help
+              case -1:
+                Serial.println("0: help\r\n1: false\r\n2: true\r\n");
+                break;
+              case 1:
+                monitorForce = false;
+                break;
+              case 2:
+                monitorForce = true;
+                break;
+              default:
+                Serial.println("Syntax error!");
+                break;
+            }
             break;
           default:
             Serial.println("Syntax error!");
@@ -392,23 +466,25 @@ void loop()
   Serial.print("\r\n\n\033[2C"); //Set curser to after "->", leave the line for input status.
   }
 
-  //The actual functions of the arduino.
-  joyX = analogRead(joyPinX);
-  delay(100);
-  joyY = analogRead(joyPinY);
-  x++;
-  if ( x == 5){
-  digitalWrite(2,1);
-  digitalWrite(4,0);
-  }
-  if ( x == 10){
-  digitalWrite(4,1);
-  digitalWrite(6,0);
-  }
-  if ( x == 15){
-  digitalWrite(6,1);
-  digitalWrite(2,0);
-  x = 0;
+  if (pause == false) {
+    //The actual functions of the arduino.
+    joyX = analogRead(joyPinX);
+    delay(100);
+    joyY = analogRead(joyPinY);
+    x++;
+    if ( x == 5){
+      digitalWrite(2,1);
+      digitalWrite(4,0);
+    }
+    if ( x == 10){
+      digitalWrite(4,1);
+      digitalWrite(6,0);
+    }
+    if ( x == 15){
+      digitalWrite(6,1);
+      digitalWrite(2,0);
+      x = 0;
+    }
   }
   //lonely isnt it?
 }
