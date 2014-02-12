@@ -23,12 +23,15 @@ char *strs[6] = {"monitor", "set", "read", "system", "test", '\0'};
 /*
 Sentient values:
 input -1 means null.  No chars should evaluate to negative numbers.
+intOut -1 means null input
 */
 /*
 Known bugs:
 -minor- when inputting float values which turn into char strings after (6?) digits of precision, loop disregards new chars and keeps the float value.
 -major- floats always go to 2 decimal places :(  When trying 0.005>x will only result in 0.00. Ever.
 -minor- when typing input and you overflow maxletters/maxwords it doesn't place the cursor into the correct position.
+-minor- on some terminal types (aka over shellinabox or conspy) the backspaces behave improperly.
+
 */
 #define UD 2
 #define LR 4
@@ -51,17 +54,10 @@ int baud = 9600;
 int input[wordCountMax][letterCountMax]={{}}; //The array of inputs.
 /*int input[wordCountMax][letterCountMax]={{0}, {1},{1, 2, 3, 4, 5, 6}};*/
 bool monitorOn = false;//When enabled, shows constant monitor promts of variables stored under monitor() and monitor2() *not implemented yet*
-boolean monitorForce = false;//When enabled, monitor continues running as text is entered. This really messes with input positioning.
-boolean debugMode = false;
+bool monitorForce = false;//When enabled, monitor continues running as text is entered. This really messes with input positioning.
+bool debugMode = false;
 bool pause = false;
 bool haltDisable = false;
-/*char *array[5];*/
-/*array[0] = "tree";*/
-/*array[1] = "fire";*/
-/*array[2] = "water";*/
-/*array[3] = "electricity";*/
-/*array[4] = "rock;"*/
-/*array[5] = "fighting";*/
 /* typedef void (* DigitFuncPtr) ();
 void tmonitor (void) {
   Serial.println("tmonitor");
@@ -522,17 +518,6 @@ void serialEvent() {
     } else
     /* supposed to be tab complete. It actually worked pretty good for the first part.
     if((int)inChar == 63) {
-      Serial.println();
-      for(int i = 0; i < 9; i++) {
-        if (strstr((char*)inputString, strs[i]) != NULL) {
-          Serial.print(strs[i]);
-          Serial.print(" ");
-        }
-        if (strs[i+1] == '\0')
-          i = 9;
-      }
-      Serial.print("\r\n->");
-      Serial.print(inputString);
     } else */
     if (inChar == 32) {
       if(wordCount < wordCountMax - 1) { //when wordcount hits 8, it serioudly fucks up lettercount. So we don't let that happen.  Its different than loopcount below because it is not an array that the max reads one shorter on.
