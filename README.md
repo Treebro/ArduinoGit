@@ -24,6 +24,8 @@ Set syntax error to a variable.
 
 crunch bools into combined integers.
 
+create interperetPeek(wordCount){}
+
 Love science.
 
 
